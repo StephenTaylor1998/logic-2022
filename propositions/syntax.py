@@ -118,7 +118,7 @@ class Formula:
         if is_variable(self.root) or is_constant(self.root):
             return f"{self.root}"
         elif is_unary(self.root):
-            return f"({self.root}{self.first})"
+            return f"{self.root}{self.first}"
         else:
             return f"({self.first}{self.root}{self.second})"
 
@@ -208,7 +208,112 @@ class Formula:
             should be of ``None`` and an error message, where the error message
             is a string with some human-readable content.
         """
+
         # Task 1.4
+
+        if string == '':
+            return None, ''
+
+        def get_variable(_s: str, _front, _end):
+            while front < len(_s) and _end <= len(_s):
+                if is_variable(string[_front:_end]):
+                    _end += 1
+                    continue
+                else:
+                    break
+
+            return Formula(_s[_front:_end - 1]), _end - 2, _end - 1
+
+        def get_binary(_s: str, _front, _end):
+            while front < len(_s) and _end <= len(_s):
+                if is_binary(string[_front:_end]) or string[_front:_end] in ['-']:
+                    _end += 1
+                    continue
+                else:
+                    break
+
+            if is_binary(string[_front:_end - 1]):
+                return _s[_front:_end - 1], _end - 2, _end - 1
+
+            return None, _end - 1, _end
+
+        stack = []
+        front, end = 0, 1
+        while front < len(string) and end <= len(string):
+
+            # variable
+            if is_variable(string[front:end]):
+                variable, front, end = get_variable(string, front, end)
+                while stack and stack[-1] == '~':
+                    variable = Formula(stack.pop(), variable)
+
+                stack.append(variable)
+
+            # constant
+            elif is_constant(string[front:end]):
+                constant = Formula(string[front:end])
+                while stack and stack[-1] == '~':
+                    constant = Formula(stack.pop(), constant)
+
+                stack.append(constant)
+
+            # operator
+            elif is_unary(string[front:end]):
+                stack.append(string[front:end])
+
+            elif string[front:end] in ['&', '|', '-']:
+                binary, front, end = get_binary(string, front, end)
+                stack.append(binary)
+
+            # left brackets
+            elif string[front:end] == '(':
+                stack.append(string[front:end])
+
+            # right brackets
+            elif string[front:end] == ')':
+                if not stack:
+                    return None, ''
+                if len(stack) < 4:
+                    end -= 1
+                    break
+
+                f2 = stack.pop()  # formula 2
+                op = stack.pop()  # operator
+                f1 = stack.pop()  # formula 1
+                lb = stack.pop()  # left brackets '('
+                if not (isinstance(f1, Formula) and isinstance(f2, Formula) and is_binary(op) and lb == '('):
+                    return None, ''
+
+                formula = Formula(op, f1, f2)
+                while stack and stack[-1] == '~':
+                    formula = Formula(stack.pop(), formula)
+
+                stack.append(formula)
+            else:
+                end -= 1
+                break
+
+            front += 1
+            end += 1
+
+        if not stack:
+            return None, ''
+
+        if isinstance(stack[0], Formula):
+
+            if len(stack) == 1:
+                return stack[0], string[end:]
+
+            else:
+                remain = ''
+                for item in stack[1:]:
+                    remain += str(item)
+
+                remain = remain + string[end:]
+                return stack[0], str(remain)
+
+        else:
+            return None, ''
 
     @staticmethod
     def is_formula(string: str) -> bool:
@@ -222,6 +327,11 @@ class Formula:
             representation of a formula, ``False`` otherwise.
         """
         # Task 1.5
+        formula, remain = Formula._parse_prefix(string)
+        if isinstance(formula, Formula) and remain == '':
+            return True
+        else:
+            return False
 
     @staticmethod
     def parse(string: str) -> Formula:
@@ -235,6 +345,8 @@ class Formula:
         """
         assert Formula.is_formula(string)
         # Task 1.6
+        formula, _ = Formula._parse_prefix(string)
+        return formula
 
     def polish(self) -> str:
         """Computes the polish notation representation of the current formula.
