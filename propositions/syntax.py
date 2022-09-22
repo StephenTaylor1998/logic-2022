@@ -161,7 +161,7 @@ class Formula:
         if is_variable(self.root):
             var_set.add(self.root)
         elif is_constant(self.root):
-            var_set.add(self.root)  # todo: Confirm whether ['T'/'F'] is a variable.
+            pass
         elif is_unary(self.root):
             var_set = var_set | Formula.variables(self.first)
         else:
@@ -180,8 +180,10 @@ class Formula:
         """
         # Task 1.3
         op_set = set()
-        if is_variable(self.root) or is_constant(self.root):
+        if is_variable(self.root):
             pass
+        elif is_constant(self.root):
+            op_set.add(self.root)
         elif is_unary(self.root):
             op_set.add(self.root)
             op_set = op_set | Formula.operators(self.first)
