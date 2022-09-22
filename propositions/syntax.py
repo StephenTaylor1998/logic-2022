@@ -12,7 +12,8 @@ from typing import Mapping, Optional, Set, Tuple, Union
 
 from logic_utils import frozen, memoized_parameterless_method
 
-@lru_cache(maxsize=100) # Cache the return value of is_variable
+
+@lru_cache(maxsize=100)  # Cache the return value of is_variable
 def is_variable(string: str) -> bool:
     """Checks if the given string is a variable name.
 
@@ -25,7 +26,8 @@ def is_variable(string: str) -> bool:
     return string[0] >= 'p' and string[0] <= 'z' and \
            (len(string) == 1 or string[1:].isdecimal())
 
-@lru_cache(maxsize=100) # Cache the return value of is_constant
+
+@lru_cache(maxsize=100)  # Cache the return value of is_constant
 def is_constant(string: str) -> bool:
     """Checks if the given string is a constant.
 
@@ -37,7 +39,8 @@ def is_constant(string: str) -> bool:
     """
     return string == 'T' or string == 'F'
 
-@lru_cache(maxsize=100) # Cache the return value of is_unary
+
+@lru_cache(maxsize=100)  # Cache the return value of is_unary
 def is_unary(string: str) -> bool:
     """Checks if the given string is a unary operator.
 
@@ -49,7 +52,8 @@ def is_unary(string: str) -> bool:
     """
     return string == '~'
 
-@lru_cache(maxsize=100) # Cache the return value of is_binary
+
+@lru_cache(maxsize=100)  # Cache the return value of is_binary
 def is_binary(string: str) -> bool:
     """Checks if the given string is a binary operator.
 
@@ -62,6 +66,7 @@ def is_binary(string: str) -> bool:
     return string == '&' or string == '|' or string == '->'
     # For Chapter 3:
     # return string in {'&', '|',  '->', '+', '<->', '-&', '-|'}
+
 
 @frozen
 class Formula:
@@ -110,6 +115,12 @@ class Formula:
             The standard string representation of the current formula.
         """
         # Task 1.1
+        if is_variable(self.root) or is_constant(self.root):
+            return f"{self.root}"
+        elif is_unary(self.root):
+            return f"({self.root}{self.first})"
+        else:
+            return f"({self.first}{self.root}{self.second})"
 
     def __eq__(self, other: object) -> bool:
         """Compares the current formula with the given one.
@@ -146,6 +157,18 @@ class Formula:
             A set of all variable names used in the current formula.
         """
         # Task 1.2
+        var_set = set()
+        if is_variable(self.root):
+            var_set.add(self.root)
+        elif is_constant(self.root):
+            var_set.add(self.root)  # todo: Confirm whether ['T'/'F'] is a variable.
+        elif is_unary(self.root):
+            var_set = var_set | Formula.variables(self.first)
+        else:
+            var_set = var_set | Formula.variables(self.first)
+            var_set = var_set | Formula.variables(self.second)
+
+        return var_set
 
     @memoized_parameterless_method
     def operators(self) -> Set[str]:
@@ -156,7 +179,18 @@ class Formula:
             current formula.
         """
         # Task 1.3
-        
+        op_set = set()
+        if is_variable(self.root) or is_constant(self.root):
+            pass
+        elif is_unary(self.root):
+            op_set.add(self.root)
+            op_set = op_set | Formula.operators(self.first)
+        else:
+            op_set.add(self.root)
+            op_set = op_set | Formula.operators(self.first)
+            op_set = op_set | Formula.operators(self.second)
+        return op_set
+
     @staticmethod
     def _parse_prefix(string: str) -> Tuple[Union[Formula, None], str]:
         """Parses a prefix of the given string into a formula.
@@ -188,7 +222,7 @@ class Formula:
             representation of a formula, ``False`` otherwise.
         """
         # Task 1.5
-        
+
     @staticmethod
     def parse(string: str) -> Formula:
         """Parses the given valid string representation into a formula.
