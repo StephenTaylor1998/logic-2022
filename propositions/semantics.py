@@ -166,15 +166,12 @@ def print_truth_table(formula: Formula) -> None:
     """
     # Task 2.4
 
-    import sys
-    # sys.stdout.flush()
-
     variable = Formula.variables(formula)
-    variable_list = list(variable)
+    variable_list = sorted(list(variable))
     str_len_list = [len(variable) for variable in variable_list]
     models = all_models(variable_list)
 
-    # to-do: optimize code
+    # [to-do: optimize code]
     # print(*[f"| {variable} " for variable in variable_list], '| ', formula, ' |', sep='')
     # print(*[f"|{'-' * (str_len + 2)}" for str_len in str_len_list], f"|{'-' * (len(str(formula))+2)}|", sep='')
     # for model in models:
@@ -182,13 +179,11 @@ def print_truth_table(formula: Formula) -> None:
     #             for variable, str_len in zip(variable_list, str_len_list)],
     #           '| ', 'T' if evaluate(formula, model) else 'F', ' '*(len(str(formula))), '|', sep='')
 
-    # modified
-    table_head = ''.join([f"| {variable} " for variable in variable_list]) + f"| {formula} |\n"
-    print(table_head, end='')
-
-    table_split = ''.join(
-        [f"|{'-' * (str_len + 2)}" for str_len in str_len_list]) + f"|{'-' * (len(str(formula)) + 2)}|\n"
-    print(table_split, end='')
+    # [modified]
+    print(''.join([f"| {variable} " for variable in variable_list]),
+          f"| {formula} |", sep='')
+    print(''.join([f"|{'-' * (str_len + 2)}" for str_len in str_len_list]),
+          f"|{'-' * (len(str(formula)) + 2)}|", sep='')
 
     for model in models:
         table_body = ''.join([
@@ -197,7 +192,18 @@ def print_truth_table(formula: Formula) -> None:
         ]) + f"| {'T' if evaluate(formula, model) else 'F'}{' ' * (len(str(formula)))}|\n"
         print(table_body, end='')
 
-    sys.stdout.flush()
+    # [demo]
+    # variable_list = sorted(list(Formula.variables(formula)))
+    # models = all_models(variable_list)
+    # variable_list.append(str(formula))
+    # widths = [len(variable) for variable in variable_list]
+    #
+    # print('|', *[f" {variable} |" for variable in variable_list], sep='')
+    # print('|', *[f"{'-' * (width + 2)}|" for width in widths], sep='')
+    # for model in models:
+    #     values = [model[variable] for variable in variable_list[:-1]]
+    #     values.append(evaluate(formula, model))
+    #     print('|', *[f" {'T' if value else 'F'}{' ' * width}|" for value, width in zip(values, widths)], sep='')
 
 
 def is_tautology(formula: Formula) -> bool:
@@ -263,9 +269,16 @@ def _synthesize_for_model(model: Model) -> Formula:
     Returns:
         The synthesized formula.
     """
+
     assert is_model(model)
     assert len(model.keys()) > 0
     # Task 2.6
+    variable_list = sorted([variable for variable in model])
+    formula=Formula(variable_list[0]) if model[variable_list[0]] else Formula('~', Formula(variable_list[0]))
+    for variable in variable_list[1:]:
+        formula = Formula('&', formula, Formula(variable) if model[variable] else Formula('~', Formula(variable)))
+
+    return formula
 
 
 def synthesize(variables: Sequence[str], values: Iterable[bool]) -> Formula:
@@ -292,6 +305,15 @@ def synthesize(variables: Sequence[str], values: Iterable[bool]) -> Formula:
     """
     assert len(variables) > 0
     # Task 2.7
+    models = [model for model, truth in zip(all_models(variables), values) if truth]
+    if not models:
+        return Formula("&", Formula(variables[0]), Formula("~", Formula(variables[0])))
+
+    formula = _synthesize_for_model(models[0])
+    for model in models:
+        formula = Formula('|', formula, _synthesize_for_model(model))
+
+    return formula
 
 
 def _synthesize_for_all_except_model(model: Model) -> Formula:
@@ -309,6 +331,12 @@ def _synthesize_for_all_except_model(model: Model) -> Formula:
     assert is_model(model)
     assert len(model.keys()) > 0
     # Optional Task 2.8
+    variable_list = sorted([variable for variable in model])
+    formula = Formula('~', Formula(variable_list[0])) if model[variable_list[0]] else Formula(variable_list[0])
+    for variable in variable_list[1:]:
+        formula = Formula('|', formula, Formula('~', Formula(variable)) if model[variable] else Formula(variable))
+
+    return formula
 
 
 def synthesize_cnf(variables: Sequence[str], values: Iterable[bool]) -> Formula:
@@ -335,6 +363,15 @@ def synthesize_cnf(variables: Sequence[str], values: Iterable[bool]) -> Formula:
     """
     assert len(variables) > 0
     # Optional Task 2.9
+    models = [model for model, truth in zip(all_models(variables), values) if not truth]
+    if not models:
+        return Formula("|", Formula(variables[0]), Formula("~", Formula(variables[0])))
+
+    formula = _synthesize_for_all_except_model(models[0])
+    for model in models:
+        formula = Formula('&', formula, _synthesize_for_all_except_model(model))
+
+    return formula
 
 
 def evaluate_inference(rule: InferenceRule, model: Model) -> bool:
