@@ -217,7 +217,7 @@ class Formula:
             return None, ''
 
         def get_variable(_s: str, _front, _end):
-            while front < len(_s) and _end <= len(_s):
+            while _front < len(_s) and _end <= len(_s):
                 if is_variable(string[_front:_end]):
                     _end += 1
                     continue
@@ -227,7 +227,7 @@ class Formula:
             return Formula(_s[_front:_end - 1]), _end - 2, _end - 1
 
         def get_binary(_s: str, _front, _end):
-            while front < len(_s) and _end <= len(_s):
+            while _front < len(_s) and _end <= len(_s):
                 if is_binary(string[_front:_end]) or string[_front:_end] in ['-']:
                     _end += 1
                     continue
@@ -358,6 +358,13 @@ class Formula:
         """
         # Optional Task 1.7
 
+        if is_variable(self.root) or is_constant(self.root):
+            return self.root
+        elif is_unary(self.root):
+            return self.root + self.first.polish()
+        else:
+            return self.root + self.first.polish() + self.second.polish()
+
     @staticmethod
     def parse_polish(string: str) -> Formula:
         """Parses the given polish notation representation into a formula.
@@ -369,6 +376,79 @@ class Formula:
             A formula whose polish notation representation is the given string.
         """
         # Optional Task 1.8
+        def get_variable(_s: str, _front, _end):
+            while _front < len(_s) and _end <= len(_s):
+                if is_variable(string[_front:_end]):
+                    _end += 1
+                    continue
+                else:
+                    break
+
+            return Formula(_s[_front:_end - 1]), _end - 2, _end - 1
+
+        def get_binary(_s: str, _front, _end):
+            while _front < len(_s) and _end <= len(_s):
+                if is_binary(string[_front:_end]) or string[_front:_end] in ['-']:
+                    _end += 1
+                    continue
+                else:
+                    break
+
+            if is_binary(string[_front:_end - 1]):
+                return _s[_front:_end - 1], _end - 2, _end - 1
+
+            return None, _end - 1, _end
+
+        stack = []
+        front, end = 0, 1
+        while front < len(string) and end <= len(string):
+
+            if string[front:end] in ['&', '|', '-']:
+                binary, front, end = get_binary(string, front, end)
+                stack.append(binary)
+
+            elif is_unary(string[front:end]):
+                stack.append(string[front:end])
+
+            elif is_variable(string[front:end]):
+                variable, front, end = get_variable(string, front, end)
+                while stack and stack[-1] == '~':
+                    variable = Formula(stack.pop(), variable)
+
+                if len(stack) > 1 and is_binary(stack[-2]) and isinstance(stack[-1], Formula):
+                    f1 = stack.pop()
+                    op = stack.pop()
+                    variable = Formula(op, f1, variable)
+
+                while stack and stack[-1] == '~':
+                    variable = Formula(stack.pop(), variable)
+
+                stack.append(variable)
+
+            elif is_constant(string[front:end]):
+                constant = Formula(string[front:end])
+                while stack and stack[-1] == '~':
+                    constant = Formula(stack.pop(), constant)
+
+                if is_binary(stack[-2]) and isinstance(stack[-1], Formula):
+                    f1 = stack.pop()
+                    op = stack.pop()
+                    constant = Formula(op, f1, constant)
+
+                while stack and stack[-1] == '~':
+                    constant = Formula(stack.pop(), constant)
+
+                stack.append(constant)
+
+            else:
+                print('[INFO] break!', string[front:end])
+                break
+
+            front += 1
+            end += 1
+
+        return stack[0]
+
 
     def substitute_variables(self, substitution_map: Mapping[str, Formula]) -> \
             Formula:
