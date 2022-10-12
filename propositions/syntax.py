@@ -63,9 +63,9 @@ def is_binary(string: str) -> bool:
     Returns:
         ``True`` if the given string is a binary operator, ``False`` otherwise.
     """
-    return string == '&' or string == '|' or string == '->'
+    # return string == '&' or string == '|' or string == '->'
     # For Chapter 3:
-    # return string in {'&', '|',  '->', '+', '<->', '-&', '-|'}
+    return string in {'&', '|',  '->', '+', '<->', '-&', '-|'}
 
 
 @frozen
@@ -218,7 +218,7 @@ class Formula:
 
         def get_variable(_s: str, _front, _end):
             while _front < len(_s) and _end <= len(_s):
-                if is_variable(string[_front:_end]):
+                if is_variable(_s[_front:_end]):
                     _end += 1
                     continue
                 else:
@@ -228,16 +228,16 @@ class Formula:
 
         def get_binary(_s: str, _front, _end):
             while _front < len(_s) and _end <= len(_s):
-                if is_binary(string[_front:_end]) or string[_front:_end] in ['-']:
+                if is_binary(_s[_front:_end]) or _s[_front:_end] in ['-', '<', '<-']:
                     _end += 1
                     continue
                 else:
                     break
 
-            if is_binary(string[_front:_end - 1]):
+            if is_binary(_s[_front:_end - 1]):
                 return _s[_front:_end - 1], _end - 2, _end - 1
 
-            return None, _end - 1, _end
+            return None, _front-1, _front
 
         stack = []
         front, end = 0, 1
@@ -263,9 +263,12 @@ class Formula:
             elif is_unary(string[front:end]):
                 stack.append(string[front:end])
 
-            elif string[front:end] in ['&', '|', '-']:
+            elif string[front:end] in ['&', '|', '-', '+', '<', '<-']:
                 binary, front, end = get_binary(string, front, end)
-                stack.append(binary)
+                if binary:
+                    stack.append(binary)
+                else:
+                    break
 
             # left brackets
             elif string[front:end] == '(':
@@ -375,6 +378,7 @@ class Formula:
         Returns:
             A formula whose polish notation representation is the given string.
         """
+
         # Optional Task 1.8
         def get_variable(_s: str, _front, _end):
             while _front < len(_s) and _end <= len(_s):
@@ -449,7 +453,6 @@ class Formula:
 
         return stack[0]
 
-
     def substitute_variables(self, substitution_map: Mapping[str, Formula]) -> \
             Formula:
         """Substitutes in the current formula, each variable name `v` that is a
@@ -474,6 +477,28 @@ class Formula:
         for variable in substitution_map:
             assert is_variable(variable)
         # Task 3.3
+
+        if is_variable(self.root):
+            # assert self.first is None and self.second is None
+            if substitution_map.get(self.root):
+                return substitution_map[self.root]
+            return self
+
+        elif is_constant(self.root):
+            # assert self.first is None and self.second is None
+            return self
+
+        elif is_unary(self.root):
+            # assert self.first is not None and self.second is None
+            first = Formula.substitute_variables(self.first, substitution_map)
+            return Formula(self.root, first)
+
+        else:
+            # assert is_binary(self.root)
+            # assert self.first is not None and self.second is not None
+            first = Formula.substitute_variables(self.first, substitution_map)
+            second = Formula.substitute_variables(self.second, substitution_map)
+            return Formula(self.root, first, second)
 
     def substitute_operators(self, substitution_map: Mapping[str, Formula]) -> \
             Formula:
@@ -504,3 +529,32 @@ class Formula:
                    is_binary(operator)
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
+
+        if is_variable(self.root):
+            # assert self.first is None and self.second is None
+            return self
+
+        elif is_constant(self.root):
+            # assert self.first is None and self.second is None
+            sub_formula = substitution_map.get(self.root)
+            if sub_formula:
+                return sub_formula
+            return self
+
+        elif is_unary(self.root):
+            # assert self.first is not None and self.second is None
+            first = Formula.substitute_operators(self.first, substitution_map)
+            sub_formula = substitution_map.get(self.root)
+            if sub_formula:
+                return sub_formula.substitute_variables({'p': first})
+            return Formula(self.root, first)
+
+        else:
+            # assert is_binary(self.root)
+            # assert self.first is not None and self.second is not None
+            first = Formula.substitute_operators(self.first, substitution_map)
+            second = Formula.substitute_operators(self.second, substitution_map)
+            sub_formula = substitution_map.get(self.root)
+            if sub_formula:
+                return sub_formula.substitute_variables({'p': first, 'q': second})
+            return Formula(self.root, first, second)
