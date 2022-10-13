@@ -90,6 +90,13 @@ class InferenceRule:
             conclusion of the current inference rule.
         """
         # Task 4.1
+        variable_set = set()
+        for formula in self.assumptions:
+            variable_set.update(Formula.variables(formula))
+
+        variable_set.update(Formula.variables(self.conclusion))
+
+        return variable_set
 
     def specialize(self, specialization_map: SpecializationMap) -> \
             InferenceRule:
@@ -107,6 +114,12 @@ class InferenceRule:
         for variable in specialization_map:
             assert is_variable(variable)
         # Task 4.4
+        conclusion = Formula.substitute_variables(self.conclusion, specialization_map)
+        assumptions = [
+            Formula.substitute_variables(assumption, specialization_map)
+            for assumption in self.assumptions
+        ]
+        return InferenceRule(assumptions, conclusion)
 
     @staticmethod
     def _merge_specialization_maps(
@@ -134,6 +147,24 @@ class InferenceRule:
                 assert is_variable(variable)
         # Task 4.5a
 
+        # check None
+        if specialization_map1 is None:
+            return None
+        if specialization_map2 is None:
+            return None
+
+        # check duplicate
+        for variable in specialization_map1:
+            if variable in specialization_map2.keys():
+                if specialization_map2[variable] != specialization_map1[variable]:
+                    return None
+
+        # merge
+        specialization_set = {}
+        specialization_set.update(specialization_map1)
+        specialization_set.update(specialization_map2)
+        return specialization_set
+
     @staticmethod
     def _formula_specialization_map(general: Formula, specialization: Formula) \
             -> Union[SpecializationMap, None]:
@@ -148,7 +179,41 @@ class InferenceRule:
             The computed specialization map, or ``None`` if `specialization` is
             in fact not a specialization of `general`.
         """
+
         # Task 4.5b
+
+        # <---------------------------recursion--------------------------->
+        def recursion(f1: Formula, f2: Formula, specialization_map: SpecializationMap) \
+                -> Union[SpecializationMap, None]:
+
+            if is_variable(f1.root):
+                specialization_map = InferenceRule._merge_specialization_maps(
+                    specialization_map, {f1.root: f2})
+                return specialization_map
+
+            if is_constant(f1.root):
+                if is_constant(f2.root) and f1.root == f2.root:
+                    return specialization_map
+                else:
+                    return None
+
+            if is_unary(f1.root) and is_unary(f2.root):
+                return recursion(f1.first, f2.first, specialization_map)
+
+            if is_binary(f1.root) and is_binary(f2.root):
+                if f1.root != f2.root:
+                    return None
+                specialization_map = InferenceRule._merge_specialization_maps(
+                    recursion(f1.first, f2.first, specialization_map),
+                    recursion(f1.second, f2.second, specialization_map)
+                )
+                return specialization_map
+
+            return None
+        # <---------------------------recursion--------------------------->
+
+        specialization_dict = recursion(general, specialization, dict())
+        return specialization_dict
 
     def specialization_map(self, specialization: InferenceRule) -> \
             Union[SpecializationMap, None]:
@@ -163,6 +228,8 @@ class InferenceRule:
             in fact not a specialization of the current rule.
         """
         # Task 4.5c
+
+
 
     def is_specialization_of(self, general: InferenceRule) -> bool:
         """Checks if the current inference rule is a specialization of the given
