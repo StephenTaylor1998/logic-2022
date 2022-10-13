@@ -228,8 +228,19 @@ class InferenceRule:
             in fact not a specialization of the current rule.
         """
         # Task 4.5c
+        if len(self.assumptions) != len(specialization.assumptions):
+            return None
 
+        specialization_map = InferenceRule._formula_specialization_map(
+            self.conclusion, specialization.conclusion)
 
+        for assumption_g, assumption_s in zip(self.assumptions, specialization.assumptions):
+            specialization_map = InferenceRule._merge_specialization_maps(
+                specialization_map,
+                InferenceRule._formula_specialization_map(assumption_g, assumption_s)
+            )
+
+        return specialization_map
 
     def is_specialization_of(self, general: InferenceRule) -> bool:
         """Checks if the current inference rule is a specialization of the given
@@ -384,6 +395,7 @@ class Proof:
         """
         assert line_number < len(self.lines)
         # Task 4.6a
+
 
     def is_line_valid(self, line_number: int) -> bool:
         """Checks if the specified line validly follows from its justifications.
