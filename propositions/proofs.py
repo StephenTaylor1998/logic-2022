@@ -210,6 +210,7 @@ class InferenceRule:
                 return specialization_map
 
             return None
+
         # <---------------------------recursion--------------------------->
 
         specialization_dict = recursion(general, specialization, dict())
@@ -396,6 +397,13 @@ class Proof:
         assert line_number < len(self.lines)
         # Task 4.6a
 
+        if line_number == 0:
+            return None
+
+        return InferenceRule(
+            [self.lines[index].formula for index in self.lines[line_number].assumptions],
+            self.lines[line_number].formula
+        )
 
     def is_line_valid(self, line_number: int) -> bool:
         """Checks if the specified line validly follows from its justifications.
