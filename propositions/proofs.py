@@ -429,6 +429,33 @@ class Proof:
         """
         assert line_number < len(self.lines)
         # Task 4.6b
+        
+        this_line = self.lines[line_number]
+
+        if len(self.rules) == 0:
+            return False
+
+        if this_line.is_assumption():
+            if this_line.formula not in self.statement.assumptions:
+                return False
+            return True
+
+        if this_line.formula == this_line.rule.conclusion:
+            return False
+
+        if this_line.rule not in self.rules:
+            # print(f"[{this_line.rule}] [{self.rules}] [{this_line.rule not in self.rules}]")
+            return False
+
+        if this_line.formula != self.statement.conclusion and line_number == len(self.lines) - 1:
+            return False
+
+        for i in this_line.assumptions:
+            if line_number <= i:
+                return False
+
+        rule = InferenceRule([self.lines[i].formula for i in this_line.assumptions], this_line.formula)
+        return rule.is_specialization_of(this_line.rule)
 
     def is_valid(self) -> bool:
         """Checks if the current proof is a valid proof of its claimed statement
@@ -439,6 +466,15 @@ class Proof:
             statement via its inference rules, ``False`` otherwise.
         """
         # Task 4.6c
+
+        if len(self.lines) == 0:
+            return False
+
+        flag = True
+        for line_number in range(len(self.lines)):
+            flag = self.is_line_valid(line_number) and flag
+
+        return flag
 
 
 def prove_specialization(proof: Proof, specialization: InferenceRule) -> Proof:
