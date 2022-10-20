@@ -489,6 +489,15 @@ def prove_specialization(proof: Proof, specialization: InferenceRule) -> Proof:
     assert proof.is_valid()
     assert specialization.is_specialization_of(proof.statement)
     # Task 5.1
+    specialization_map = proof.statement.specialization_map(specialization)
+    statement = specialization
+    rules = proof.rules
+    lines = [Proof.Line(
+        Formula.substitute_variables(line.formula, specialization_map),
+        line.rule,
+        line.assumptions if hasattr(line, "assumptions") else None
+    ) for line in proof.lines]
+    return Proof(statement, rules, lines)
 
 
 def _inline_proof_once(main_proof: Proof, line_number: int,
@@ -520,6 +529,50 @@ def _inline_proof_once(main_proof: Proof, line_number: int,
     assert main_proof.lines[line_number].rule == lemma_proof.statement
     assert lemma_proof.is_valid()
     # Task 5.2a
+    specialization = main_proof.rule_for_line(line_number)
+    special_lemma_proof = prove_specialization(lemma_proof, specialization)
+
+    line_map = dict()
+    lemma_lines = []
+    delete_lines = []
+    for special_lemma_line_number, special_lemma_line in enumerate(special_lemma_proof.lines):
+        # print(special_lemma_line.formula)
+        lemma_formula = special_lemma_line.formula
+        main_assumptions = specialization.assumptions
+        # record the map between "line assumptions" and "line-index of main_proof.lines"
+        if lemma_formula in main_assumptions:
+            index = main_assumptions.index(lemma_formula)
+            # print("index: ", index)
+            line_map[special_lemma_line_number] = main_proof.lines[line_number].assumptions[index]
+            delete_lines.append(special_lemma_line_number)
+            continue
+
+        lemma_assumptions = []
+        for assumption_index in special_lemma_line.assumptions:
+            if assumption_index in line_map:
+                lemma_assumptions.append(line_map[assumption_index])
+            else:
+                count_delete = 0
+                for l in delete_lines:
+                    if l < assumption_index:
+                        count_delete += 1
+                lemma_assumptions.append(assumption_index + line_number - count_delete)
+
+        lemma_lines.append(Proof.Line(special_lemma_line.formula, special_lemma_line.rule, lemma_assumptions))
+
+    rest_main_lines = []
+    for main_line in main_proof.lines[line_number+1:]:
+        main_assumptions = []
+        for assumption_index in main_line.assumptions:
+            if assumption_index < line_number:
+                main_assumptions.append(assumption_index)
+            else:
+                main_assumptions.append(assumption_index + len(lemma_lines) - 1)
+        rest_main_lines.append(Proof.Line(main_line.formula, main_line.rule, main_assumptions))
+
+    lines = (*main_proof.lines[:line_number], *lemma_lines, *rest_main_lines)
+
+    return Proof(main_proof.statement, main_proof.rules.union(lemma_proof.rules), lines)
 
 
 def inline_proof(main_proof: Proof, lemma_proof: Proof) -> Proof:
