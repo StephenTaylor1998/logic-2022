@@ -429,7 +429,7 @@ class Proof:
         """
         assert line_number < len(self.lines)
         # Task 4.6b
-        
+
         this_line = self.lines[line_number]
 
         if len(self.rules) == 0:
@@ -439,9 +439,6 @@ class Proof:
             if this_line.formula not in self.statement.assumptions:
                 return False
             return True
-
-        if this_line.formula == this_line.rule.conclusion:
-            return False
 
         if this_line.rule not in self.rules:
             # print(f"[{this_line.rule}] [{self.rules}] [{this_line.rule not in self.rules}]")
