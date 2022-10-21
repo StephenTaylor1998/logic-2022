@@ -596,3 +596,24 @@ def inline_proof(main_proof: Proof, lemma_proof: Proof) -> Proof:
     assert main_proof.is_valid()
     assert lemma_proof.is_valid()
     # Task 5.2b
+
+    def get_line_number(_main_proof, _lemma_proof) -> int:
+        lemma_rule = _lemma_proof.statement
+        for index, line in enumerate(_main_proof.lines):
+            if line.rule is None:
+                continue
+
+            if lemma_rule.is_specialization_of(line.rule):
+                # print("is rules")
+                return index
+        return -1
+
+    while True:
+        line_number = get_line_number(main_proof, lemma_proof)
+        if line_number == -1:
+            break
+        else:
+            main_proof = _inline_proof_once(main_proof, line_number, lemma_proof)
+    print(main_proof)
+
+    return Proof(main_proof.statement, main_proof.rules - {lemma_proof.statement}, main_proof.lines)
