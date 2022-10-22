@@ -563,12 +563,16 @@ def _inline_proof_once(main_proof: Proof, line_number: int,
     rest_main_lines = []
     for main_line in main_proof.lines[line_number+1:]:
         main_assumptions = []
-        for assumption_index in main_line.assumptions:
-            if assumption_index < line_number:
-                main_assumptions.append(assumption_index)
-            else:
-                main_assumptions.append(assumption_index + len(lemma_lines) - 1)
-        rest_main_lines.append(Proof.Line(main_line.formula, main_line.rule, main_assumptions))
+        if hasattr(main_line, 'assumptions'):
+            for assumption_index in main_line.assumptions:
+                if assumption_index < line_number:
+                    main_assumptions.append(assumption_index)
+                else:
+                    main_assumptions.append(assumption_index + len(lemma_lines) - 1)
+            rest_main_lines.append(Proof.Line(main_line.formula, main_line.rule, main_assumptions))
+
+        else:
+            rest_main_lines.append(Proof.Line(main_line.formula))
 
     lines = (*main_proof.lines[:line_number], *lemma_lines, *rest_main_lines)
 
