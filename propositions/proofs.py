@@ -618,6 +618,6 @@ def inline_proof(main_proof: Proof, lemma_proof: Proof) -> Proof:
             break
         else:
             main_proof = _inline_proof_once(main_proof, line_number, lemma_proof)
-    print(main_proof)
+    # print(main_proof)
 
     return Proof(main_proof.statement, main_proof.rules - {lemma_proof.statement}, main_proof.lines)
