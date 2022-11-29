@@ -274,7 +274,7 @@ def _synthesize_for_model(model: Model) -> Formula:
     assert len(model.keys()) > 0
     # Task 2.6
     variable_list = sorted([variable for variable in model])
-    formula=Formula(variable_list[0]) if model[variable_list[0]] else Formula('~', Formula(variable_list[0]))
+    formula = Formula(variable_list[0]) if model[variable_list[0]] else Formula('~', Formula(variable_list[0]))
     for variable in variable_list[1:]:
         formula = Formula('&', formula, Formula(variable) if model[variable] else Formula('~', Formula(variable)))
 
@@ -422,4 +422,3 @@ def is_sound_inference(rule: InferenceRule) -> bool:
             return False
 
     return True
-
