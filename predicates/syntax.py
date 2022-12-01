@@ -117,6 +117,14 @@ class Term:
             The standard string representation of the current term.
         """
         # Task 7.1
+        if is_variable(self.root) or is_constant(self.root):
+            return self.root
+        else:
+            return "".join([
+                self.root, "(",
+                *[str(term) + ',' for term in self.arguments[:-1]],
+                str(self.arguments[-1]),
+                ")"])
 
     def __eq__(self, other: object) -> bool:
         """Compares the current term with the given one.
@@ -160,6 +168,24 @@ class Term:
             that entire name (and not just a part of it, such as ``'x1'``).
         """
         # Task 7.3a
+        import re
+        # pattern_constant = re.compile(r"(([a-e]|[0-9])([a-z]*[0-9]*))|_")
+        # pattern_variable = re.compile(r"(([u-z])([a-z]*[0-9]*))")
+        pattern_function = re.compile(r"(([f-t])([a-z]*[0-9]*))")
+        pattern_c_and_v = re.compile(r"(([a-e]|[u-z]|[0-9])([a-z]*[0-9]*))|_")
+
+        if is_variable(string[0]) or is_constant(string[0]):
+            index = pattern_c_and_v.match(string).span()[1]
+            return Term(string[:index]), string[index:]
+        if is_function(string[0]):
+            index = pattern_function.match(string).span()[1]
+            func_name = string[:index]
+            term, remain = Term._parse_prefix(string[index + 1:])  # '(', '\w*'
+            arguments = [term]
+            while remain[0] == ',':
+                term, remain = Term._parse_prefix(remain[1:])
+                arguments.append(term)
+            return Term(func_name, arguments), remain[1:]  # ')', '\w*'
 
     @staticmethod
     def parse(string: str) -> Term:
@@ -172,6 +198,7 @@ class Term:
             A term whose standard string representation is the given string.
         """
         # Task 7.3b
+        return Term._parse_prefix(string)[0]
 
     def constants(self) -> Set[str]:
         """Finds all constant names in the current term.
