@@ -49,9 +49,7 @@ def is_constant(string: str) -> bool:
     Returns:
         ``True`` if the given string is a constant name, ``False`` otherwise.
     """
-    return (((string[0] >= '0' and string[0] <= '9') or \
-             (string[0] >= 'a' and string[0] <= 'e')) and \
-            string.isalnum()) or string == '_'
+    return ((('0' <= string[0] <= '9') or ('a' <= string[0] <= 'e')) and string.isalnum()) or string == '_'
 
 
 @lru_cache(maxsize=100)  # Cache the return value of is_variable
@@ -64,7 +62,7 @@ def is_variable(string: str) -> bool:
     Returns:
         ``True`` if the given string is a variable name, ``False`` otherwise.
     """
-    return string[0] >= 'u' and string[0] <= 'z' and string.isalnum()
+    return 'u' <= string[0] <= 'z' and string.isalnum()
 
 
 @lru_cache(maxsize=100)  # Cache the return value of is_function
@@ -77,7 +75,7 @@ def is_function(string: str) -> bool:
     Returns:
         ``True`` if the given string is a function name, ``False`` otherwise.
     """
-    return string[0] >= 'f' and string[0] <= 't' and string.isalnum()
+    return 'f' <= string[0] <= 't' and string.isalnum()
 
 
 @frozen
@@ -267,7 +265,7 @@ def is_relation(string: str) -> bool:
     Returns:
         ``True`` if the given string is a relation name, ``False`` otherwise.
     """
-    return string[0] >= 'F' and string[0] <= 'T' and string.isalnum()
+    return 'F' <= string[0] <= 'T' and string.isalnum()
 
 
 @lru_cache(maxsize=100)  # Cache the return value of is_unary
